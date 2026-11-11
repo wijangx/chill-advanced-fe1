@@ -1,38 +1,34 @@
-# Mission 6 - Chill Movie Streaming Web App (Intermediate Frontend Part 2)
+# Chill Movie App – Advanced Frontend Mission 1
 
-Proyek lanjutan pengembangan frontend website streaming film **Chill** berbasis React, Vite, dan Tailwind CSS. Pada misi ini, fokus utama adalah menambahkan sisi interaktif pada aplikasi web statis menggunakan manajemen state (`useState`) dan manipulasi data array of objects (CRUD) langsung pada tampilan utama (Homepage).
+Project ini merupakan penyelesaian tugas **Mission 1 Advanced Frontend (ReactJS)** di Bootcamp Full Stack Developer Harisenin.com. Aplikasi web streaming film **Chill** kini telah diintegrasikan dari data statis berbasis Array menjadi aplikasi dinamis menggunakan **REST API (MockAPI.io)**, **Axios**, dan **Custom Hooks**.
 
----
+## ✨ Fitur Utama yang Diimplementasikan
 
-## 🚀 Fitur Utama & Interaktivitas (CRUD Implementation)
-
-Implementasi fitur interaktif berbasis **Array of Objects** yang ditampilkan dan dikelola langsung pada Homepage:
-
-* **Read (Get Data):** Menampilkan katalog film favorit secara dinamis dari array object state (`useState`) lengkap dengan detail poster, durasi, rating usia, dan genre.
-* **Create (Add Data):** Menambahkan film baru ke daftar katalog melalui form modal interaktif yang dilengkapi fitur *Live Preview Card*, pemilihan poster bawaan, dan input field dinamis.
-* **Update (Edit Data):** Mengubah informasi data film (judul, durasi, rating usia, genre, dan poster) secara real-time via modal form edit.
-* **Delete (Hapus Data):** Menghapus film dari daftar katalog dengan konfirmasi dialog browser serta pembaruan state secara *immutable*.
-
----
-
-## 🧩 Arsitektur State & Komponen (State Management)
-
-* **Parent Component (`Home.jsx`):** Bertindak sebagai pusat penyimpanan state (`useState`) data daftar film, modal state, form state, serta seluruh handler fungsi CRUD (`handleSaveMovie`, `handleDeleteMovie`, `handleOpenEditModal`).
-* **Child Component (`MovieSection.jsx`):** Menerima data daftar film dan fungsi trigger aksi melalui *props* (*prop passing/event delegation*), serta menyediakan tombol akses penambahan film baru.
-* **Child Component (`MovieCard.jsx`):** Komponen poster individual dengan portal hover card interaktif yang memuat tombol aksi **Edit** dan **Hapus** film.
-
----
+- **Integrasi Fake API (MockAPI.io):** Menghubungkan katalog film pada section _"Top Rating Film dan Series Hari ini"_ dengan cloud database pada endpoint `/movies`.
+- **Operasi CRUD Dinamis (Axios):**
+  - **GET (`getMovies`):** Mengambil dan menampilkan daftar film dari server saat halaman dimuat, dilengkapi fitur _auto-seed_ serta _anti-duplicate_ untuk menangani React StrictMode.
+  - **ADD / POST (`addMovie`):** Menambahkan data film baru ke server melalui Modal Form interaktif dengan fitur _Live Card Preview_.
+  - **UPDATE / PUT (`updateMovie`):** Mengubah informasi film (judul, durasi, rating usia, genre, dan poster) secara permanen di server API.
+  - **DELETE (`deleteMovie`):** Menghapus film dari database server dengan dialog konfirmasi.
+- **Modular API Service & Interceptor (`src/services/api/movieApi.js`):** Mengelompokkan seluruh fungsi pemanggilan API ke dalam satu modul khusus lengkap dengan _Axios Request & Response Interceptors_.
+- **Custom Hooks (`src/hooks/useMovies.js`):** Memisahkan logika bisnis dan state management API (`movies`, `isLoading`, `error`) dari komponen UI (`Home.jsx`).
+- **Environment Variables (`.env`):** Menyimpan Base URL API (`VITE_API_BASE_URL`) secara aman agar tidak _hardcoded_ di dalam kode.
+- **Responsive Design (Desktop & Mobile):** Mendukung interaksi _pop-up hover card_ pada layar desktop dan panel kontrol terpadu (**Kelola Film**) pada layar mobile.
 
 ## 🛠️ Tech Stack
 
-* **Framework:** React.js (Vite)
-* **Styling:** Tailwind CSS (Mobile-first responsive design, Dark Theme Chill style)
-* **State Management:** React Hooks (`useState`, `useRef`, `useEffect`)
-* **Routing:** `react-router-dom`
-* **Version Control:** Git & GitHub
+- **Frontend:** React 19, Vite, Tailwind CSS, React Router DOM
+- **HTTP Client:** Axios
+- **Mock Backend:** MockAPI.io
 
----
+## 📂 Struktur Folder Utama
 
-## 📝 Catatan Teknis (Technical Note)
+- `src/services/api/movieApi.js` — Konfigurasi Axios instance, Interceptor, dan fungsi CRUD API.
+- `src/hooks/useMovies.js` — Custom Hook untuk integrasi state dan pemanggilan API.
+- `src/pages/Home.jsx` — Halaman utama dengan fitur manajemen katalog film.
+- `src/components/` — Komponen UI modular (`MovieSection`, `MovieCard`, `Navbar`, `Footer`, dll.).
 
-Seluruh manipulasi data (Create, Read, Update, Delete) pada misi ini dijalankan secara reaktif pada sisi klien (*client-side state management*) menggunakan state array of objects React tanpa mutasi langsung (*immutable update patterns* menggunakan `filter` dan `map`), sesuai dengan rubrik kompetensi Intermediate Frontend Part 2.
+## 🔗 Link Project
+
+- **Repository GitHub:** https://github.com/wijangx/chill-advanced-fe1
+- **API Endpoint:** https://6af14da611a6aa866e801eb1.mockapi.io/movies
