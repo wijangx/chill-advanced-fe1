@@ -4,21 +4,29 @@ import MovieSection from "../components/MovieSection";
 import Footer from "../components/Footer";
 import {
   continueWatching,
-  topRating as initialTopRating,
   trendingMovies,
   newReleases,
 } from "../data/movies";
+import { useMovies } from "../hooks/useMovies";
 
 export default function Home() {
   const [isMuted, setIsMuted] = useState(true);
 
-  // 1. STATE CRUD (Array of Objects)
-  const [topMovies, setTopMovies] = useState(initialTopRating);
+  // 1. INTEGRASI API MENGGUNAKAN CUSTOM HOOK (GET, ADD, UPDATE, DELETE)
+  const {
+    movies: topMovies,
+    isLoading,
+    error,
+    handleAddMovie,
+    handleUpdateMovie,
+    handleRemoveMovie,
+  } = useMovies();
 
   // State Modal Form Add & Edit
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMovie, setEditingMovie] = useState(null);
   const [isManageModalOpen, setIsManageModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     duration: "2j 00m",
@@ -47,62 +55,71 @@ export default function Home() {
       title: movie.title || "",
       duration: movie.duration || "2j 00m",
       ageBadge: movie.ageBadge || "13+",
-      genres: Array.isArray(movie.genres) ? movie.genres.join(", ") : movie.genres || "",
+      genres: Array.isArray(movie.genres)
+        ? movie.genres.join(", ")
+        : movie.genres || "",
       image: movie.image || "/assets/duty.png",
     });
     setIsModalOpen(true);
   };
 
-  // Handler: Hapus Film (Delete)
-  const handleDeleteMovie = (id) => {
-    if (window.confirm("Apakah kamu yakin ingin menghapus film ini dari daftar?")) {
-      setTopMovies((prev) => prev.filter((item) => item.id !== id));
+  // Handler: Hapus Film via API (Delete)
+  const handleDeleteMovie = async (id) => {
+    if (
+      window.confirm("Apakah kamu yakin ingin menghapus film ini dari daftar?")
+    ) {
+      try {
+        await handleRemoveMovie(id);
+      } catch {
+        alert("Terjadi kesalahan saat menghapus film.");
+      }
     }
   };
 
-  // Handler: Simpan Form (Create & Update)
-  const handleSaveMovie = (e) => {
+  // Handler: Simpan Form via API (Create & Update)
+  const handleSaveMovie = async (e) => {
     e.preventDefault();
-    if (!formData.title.trim()) return;
+    if (!formData.title.trim() || isSubmitting) return;
 
     const parsedGenres = formData.genres
       .split(",")
       .map((g) => g.trim())
       .filter(Boolean);
 
-    if (editingMovie) {
-      // UPDATE DATA
-      setTopMovies((prev) =>
-        prev.map((item) =>
-          item.id === editingMovie.id
-            ? {
-                ...item,
-                title: formData.title,
-                duration: formData.duration,
-                ageBadge: formData.ageBadge,
-                genres: parsedGenres.length > 0 ? parsedGenres : ["Drama"],
-                image: formData.image || item.image,
-              }
-            : item
-        )
-      );
-    } else {
-      // CREATE / ADD DATA BARU
-      const newMovie = {
-        id: `custom-${Date.now()}`,
-        title: formData.title,
-        duration: formData.duration,
-        ageBadge: formData.ageBadge,
-        genres: parsedGenres.length > 0 ? parsedGenres : ["Aksi"],
-        image: formData.image || "/assets/duty.png",
-        previewImage: formData.image || "/assets/duty-ls.png",
-        badgeType: "blue",
-        badge: "Baru",
-      };
-      setTopMovies((prev) => [newMovie, ...prev]);
-    }
+    setIsSubmitting(true);
 
-    setIsModalOpen(false);
+    try {
+      if (editingMovie) {
+        // UPDATE DATA KE API (PUT)
+        await handleUpdateMovie(editingMovie.id, {
+          ...editingMovie,
+          title: formData.title,
+          duration: formData.duration,
+          ageBadge: formData.ageBadge,
+          genres: parsedGenres.length > 0 ? parsedGenres : ["Drama"],
+          image: formData.image || editingMovie.image,
+          previewImage: formData.image || editingMovie.previewImage,
+        });
+      } else {
+        // CREATE / ADD DATA BARU KE API (POST)
+        const newMoviePayload = {
+          title: formData.title,
+          duration: formData.duration,
+          ageBadge: formData.ageBadge,
+          genres: parsedGenres.length > 0 ? parsedGenres : ["Aksi"],
+          image: formData.image || "/assets/duty.png",
+          previewImage: formData.image || "/assets/duty-ls.png",
+          badgeType: "blue",
+          badge: "Baru",
+        };
+        await handleAddMovie(newMoviePayload);
+      }
+      setIsModalOpen(false);
+    } catch {
+      alert("Gagal menyimpan data film ke server.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -165,8 +182,16 @@ export default function Home() {
                 stroke="currentColor"
                 strokeWidth={2}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"
+                />
               </svg>
             ) : (
               <svg
@@ -177,12 +202,34 @@ export default function Home() {
                 stroke="currentColor"
                 strokeWidth={2}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"
+                />
               </svg>
             )}
           </button>
         </div>
       </section>
+
+      {/* Indikator Loading / Error API */}
+      {isLoading && (
+        <div className="px-5 md:px-20 py-2">
+          <div className="bg-[#22282A] border border-[#3A3D42] text-xs md:text-sm text-[#C1C2C4] px-4 py-2.5 rounded-xl flex items-center gap-2.5">
+            <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
+            <span>Menyinkronkan data film dengan MockAPI Server...</span>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="px-5 md:px-20 py-2">
+          <div className="bg-red-950/40 border border-red-500/40 text-xs md:text-sm text-red-300 px-4 py-2.5 rounded-xl">
+            {error}
+          </div>
+        </div>
+      )}
 
       {/* List Film Sections */}
       <div className="-mt-2 relative z-10 space-y-6">
@@ -192,7 +239,7 @@ export default function Home() {
           isLandscape={true}
         />
 
-        {/* SECTION INTERAKTIF DENGAN FITUR LENGKAP CRUD */}
+        {/* SECTION INTERAKTIF DENGAN FITUR LENGKAP CRUD API */}
         <MovieSection
           title="Top Rating Film dan Series Hari ini"
           movies={topMovies}
@@ -201,14 +248,8 @@ export default function Home() {
           onAddClick={() => setIsManageModalOpen(true)}
         />
 
-        <MovieSection
-          title="Film Trending"
-          movies={trendingMovies}
-        />
-        <MovieSection
-          title="Rilis Baru"
-          movies={newReleases}
-        />
+        <MovieSection title="Film Trending" movies={trendingMovies} />
+        <MovieSection title="Rilis Baru" movies={newReleases} />
       </div>
 
       <Footer />
@@ -224,20 +265,23 @@ export default function Home() {
             <div className="flex items-center justify-between pb-4 mb-5 border-b border-[#282A2E]">
               <div>
                 <span
-                  className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider border ${editingMovie
-                  ? "text-amber-300 bg-amber-500/15 border-amber-500/30"
-                  : "text-blue-400 bg-blue-500/15 border-blue-500/30"
-                }`}
-                  >
-                  <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                  editingMovie ? "bg-amber-400" : "bg-blue-400"
+                  className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider border ${
+                    editingMovie
+                      ? "text-amber-300 bg-amber-500/15 border-amber-500/30"
+                      : "text-blue-400 bg-blue-500/15 border-blue-500/30"
                   }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      editingMovie ? "bg-amber-400" : "bg-blue-400"
+                    }`}
                   />
-                  {editingMovie ? "Mode Ubah" : "Film Baru"}
+                  {editingMovie ? "Mode Ubah (API PUT)" : "Film Baru (API POST)"}
                 </span>
                 <h3 className="text-xl md:text-2xl font-bold text-white mt-2">
-                  {editingMovie ? "Edit Informasi Film" : "Tambah ke Daftar Film"}
+                  {editingMovie
+                    ? "Edit Informasi Film"
+                    : "Tambah ke Daftar Film"}
                 </h3>
               </div>
               <button
@@ -257,7 +301,9 @@ export default function Home() {
                 className="w-14 h-20 object-cover rounded-lg shadow-md shrink-0 bg-[#181A1C]"
               />
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] text-gray-400 uppercase font-medium">Live Preview</p>
+                <p className="text-[11px] text-gray-400 uppercase font-medium">
+                  Live Preview
+                </p>
                 <h4 className="text-sm md:text-base font-bold text-white truncate">
                   {formData.title.trim() || "Judul Film Anda"}
                 </h4>
@@ -265,7 +311,9 @@ export default function Home() {
                   <span className="bg-[#2B2F33] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                     {formData.ageBadge}
                   </span>
-                  <span className="text-xs text-[#C1C2C4]">{formData.duration}</span>
+                  <span className="text-xs text-[#C1C2C4]">
+                    {formData.duration}
+                  </span>
                 </div>
               </div>
             </div>
@@ -355,7 +403,9 @@ export default function Home() {
                   <option value="/assets/sonic.png">Sonic 2</option>
                   <option value="/assets/big-hero.png">Big Hero 6</option>
                   <option value="/assets/missing.png">Missing</option>
-                  <option value="/assets/tomorrow-war.png">The Tomorrow War</option>
+                  <option value="/assets/tomorrow-war.png">
+                    The Tomorrow War
+                  </option>
                 </select>
               </div>
 
@@ -370,23 +420,33 @@ export default function Home() {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-[#0F1E93] hover:bg-[#0B1773] text-white rounded-full text-xs font-semibold transition shadow-lg shadow-[#0F1E93]/40 hover:scale-[1.02] active:scale-[0.98]"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 bg-[#0F1E93] hover:bg-[#0B1773] disabled:opacity-50 text-white rounded-full text-xs font-semibold transition shadow-lg shadow-[#0F1E93]/40 hover:scale-[1.02] active:scale-[0.98]"
                 >
-                  {editingMovie ? "Simpan Perubahan" : "Tambahkan Film"}
+                  {isSubmitting
+                    ? "Menyimpan..."
+                    : editingMovie
+                      ? "Simpan Perubahan"
+                      : "Tambahkan Film"}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
       {/* MODAL KELOLA DAFTAR FILM (CRUD PUSAT - SANGAT RAMAH MOBILE) */}
       {isManageModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
           <div className="w-full max-w-lg bg-[#181A1C] border border-[#282A2E] rounded-2xl p-5 md:p-6 shadow-2xl flex flex-col max-h-[85vh]">
             <div className="flex items-center justify-between pb-3 border-b border-[#282A2E] mb-4">
               <div>
-                <h3 className="text-lg md:text-xl font-bold text-white">Kelola Katalog Film</h3>
-                <p className="text-xs text-[#C1C2C4]">Atur, ubah, atau hapus film di Top Rating</p>
+                <h3 className="text-lg md:text-xl font-bold text-white">
+                  Kelola Katalog Film (MockAPI)
+                </h3>
+                <p className="text-xs text-[#C1C2C4]">
+                  Atur, ubah, atau hapus film di Top Rating secara permanen
+                </p>
               </div>
               <button
                 type="button"
@@ -412,7 +472,10 @@ export default function Home() {
             {/* List Film untuk Edit & Hapus */}
             <div className="overflow-y-auto space-y-2.5 pr-1 divide-y divide-[#282A2E]/50">
               {topMovies.map((movie) => (
-                <div key={movie.id} className="pt-2.5 first:pt-0 flex items-center justify-between gap-3">
+                <div
+                  key={movie.id}
+                  className="pt-2.5 first:pt-0 flex items-center justify-between gap-3"
+                >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <img
                       src={movie.image}
@@ -420,8 +483,13 @@ export default function Home() {
                       className="w-10 h-14 object-cover rounded bg-[#22282A] shrink-0"
                     />
                     <div className="min-w-0">
-                      <p className="text-sm font-bold text-white truncate">{movie.title}</p>
-                      <p className="text-xs text-[#C1C2C4]">{movie.duration || "2j 00m"} • {movie.ageBadge || "13+"}</p>
+                      <p className="text-sm font-bold text-white truncate">
+                        {movie.title}
+                      </p>
+                      <p className="text-xs text-[#C1C2C4]">
+                        {movie.duration || "2j 00m"} •{" "}
+                        {movie.ageBadge || "13+"}
+                      </p>
                     </div>
                   </div>
 
